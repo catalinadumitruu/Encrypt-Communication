@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@3.1.9-1/crypto-js.js"></script>
+    <title>My Website</title>
+    <style>
+        *,
+        html {
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        html {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-color: rgb(161, 199, 204);
+        }
+
+        .center {
+            width: 100%;
+            height: 50%;
+            margin: 0;
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgb(39, 26, 18);
+            font-family: "Trebuchet MS", Helvetica, sans-serif;
+            text-align: center;
+        }
+
+        .button {
+            background-color: #e49c00;
+            border: none;
+            color: rgb(39, 26, 18);
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+        }
+
+        .info{
+            background-color: rgb(161, 199, 204);
+            border: none;
+            color: rgb(39, 26, 18);
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+        }
+
+        .info2 { 
+            background-color: rgb(161, 199, 204);
+            border: none;
+            color: rgb(39, 26, 18);
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+
+        h1 {
+            font-size: 130px;
+        }
+
+        p {
+            font-size: 64px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="center">
+        <h1>Hello!</h1>
+        <p class="info">
+          <i> <br/> PLEASE, START WITH AN ENCRYPTED USERS.JSON FILE - if you do not have one call the endpoint <b>/encryptJSONFile</b> to encrypt the <b>users.json file</b> <br/></i><br/>
+            <i>*Encryption and decryption for task01 (with websocket) is done when sending the data through the network <br/>
+            *Encryption and decryption for task02 (improved REST API client) is done at writing and reading from file - locally the data is stored in an encrypted file<br/> 
+            *Also, the JSON format is: <br/> 
+                "id" : { <br/> 
+                    "name" : "value for name", <br/> 
+                    "password": "value for password" <br/> 
+                    "profession": "value for profession" <br/> 
+                } <br/> 
+        </i></p><br/>
+        <button type="button" class="button" onclick="openWebSocket()">Click me to open webSocket and send encrypted json</button >
+        <form action="http://localhost:8081/listUsers" formtarget="_blank">
+            <input class="button" type="submit" value="Click me to list users" />
+        </form>
+       <p class="button">Also, for testing /delete/{someUser} and /addUser you can also go to Postman <b>OR</b> try the below forms!</p>
+       <br/> <br/>
+       <form id='postId' >
+        <label for="fname">Name:</label>
+        <input id="name" name="name" type="text"><br><br>
+        <label for="pass">Password:</label>
+        <input id="password" name="password" type="text" ><br><br>
+        <label for="prof">Profession:</label>
+        <input id="profession" name="profession" type="text"><br><br>
+      </form>
+        <button class="button" onclick="postReq()">POST data</button>
+        <br/><br/>
+        <form id='deleteID' >
+            <label for="delete">Insert user's id:</label>
+            <input name="delete" type="text" id="delete"><br><br>
+        </form>
+        <button class="button" onclick="deleteReq()">DELETE data</button>
+        <br/>
+        
+    </div>
+
+<div id="content"></div>
+
+<script type="text/javascript">
+    function openWebSocket() {
+        var text = '{ "employees" : [' +
+                        '{ "firstName":"John" , "lastName":"Doe" },' +
+                        '{ "firstName":"Anna" , "lastName":"Smith" },' +
+                        '{ "firstName":"Peter" , "lastName":"Jones" } ]}';
+        
+        const ENC_KEY = "bf3c199c2470cb477d907b1e0917c17b" // set random encryption key
+        var encrypted = CryptoJS.AES.encrypt(text, ENC_KEY).toString();
+
+        var socket = new WebSocket('ws://localhost:1998');
+        socket.onopen = function () {
+            console.log('websocket is connected ...')
+            socket.send(encrypted);
+        };
+
+        socket.onmessage = function (message) {
+            content.innerHTML += message.data +'<br />';
+        };
+
+        socket.onerror = function (error) {
+            console.log('WebSocket error: ' + error);
+        };
+    }
+
+    function postReq() {
+        let form  = document.getElementById('postId')
+
+        let name = form.elements['name']
+        let password =  form.elements['password']
+        let profession = form.elements['profession']
+
+        if( document.getElementById('name').value.lenght != 0 && 
+            document.getElementById('password').value != 0 &&
+            document.getElementById('profession').value.lenght != 0) {
+
+            fetch('http://localhost:8081/addUser', {
+            method: 'post',
+            headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({name: name.value, password: password.value, profession: profession.value})
+            }).then(res => {
+                if(res.ok) {
+                    res.json()
+                    document.getElementById('name').value = ""
+                    document.getElementById('password').value = ""
+                    document.getElementById('profession').value = ""
+
+                    alert("User was sent! Congrats! Do a GET to see yourself!")
+                }
+            })
+            .then(res => {
+                console.log(res)
+            })
+            .catch(err => {
+                console.log(err);
+                alert("Something went wrong! we are sorry")
+            });
+        } else {
+            alert("Something went wrong! Must complete all the fields")
+        }
+        
+    }
+
+    function deleteReq() {
+        let form  = document.getElementById('deleteID')
+
+        let userCode = form.elements['delete']
+
+        fetch('http://localhost:8081/deleteUser/' + userCode.value, {
+            method: 'delete'
+            })
+        .then(res => {
+            if(! res.ok) {
+                alert("Something went wrong! Maybe the user doens't exist!")
+            } else {
+                res.json();
+                document.getElementById('delete').value = ""
+                alert("User Deleted! Do a GET to see yourself!")
+            }
+        })
+        .then(res =>  {
+            console.log(res)
+        })
+        .catch(err => {
+            cosole.log(err);
+            alert("Something went wrong! we are sorry")
+        });
+    }
+</script>
+</body>
+</html>
